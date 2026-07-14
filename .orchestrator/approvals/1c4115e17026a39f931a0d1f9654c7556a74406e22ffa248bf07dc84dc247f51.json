@@ -1,0 +1,9 @@
+{
+  "spec_digest": "1c4115e17026a39f931a0d1f9654c7556a74406e22ffa248bf07dc84dc247f51",
+  "instance_id": "26007c4d0391ede092d6d705b4b8c278",
+  "approved_scope": [
+    "scripts/lib/wordcount.sh",
+    "tests/wordcount.sh"
+  ],
+  "base_branch": "ready-for-main"
+}
