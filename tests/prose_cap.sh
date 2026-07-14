@@ -4,7 +4,7 @@
 # and capped; git history keeps everything deleted. Growing past a cap must be a deliberate,
 # reviewed edit to this test — never drift.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "${ORCH_TARGET_DIR:-$(dirname "$0")/..}"
 
 command -v git >/dev/null 2>&1 || { echo "SKIP prose_cap.sh: git absent"; exit 77; }
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "SKIP prose_cap.sh: not a git checkout"; exit 77; }
