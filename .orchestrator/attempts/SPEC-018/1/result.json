@@ -1,0 +1,50 @@
+{
+  "attempt_id": "SPEC-018-1",
+  "spec_id": "SPEC-018",
+  "attempt": 1,
+  "spec_digest": "bae54edeadad373adf44d6d47b147129fd77f75f71d692e9d8cdd2349b0e831e",
+  "base_sha": "a64c3d4a572277167ab80dd58e080f9d239b07ed",
+  "worker_model": "gpt-5.6-sol",
+  "reviewer_model": "claude-fable-5",
+  "isolation": "D5: codex-worker uid, systemd-hardened, the operator's home inaccessible, test phase network-off",
+  "test_command": "bash tests/wordcount.sh",
+  "status": "failed_test",
+  "error_class": "test_did_not_run",
+  "commit_policy": "orchestrator-commits (G1-A/C)",
+  "finished": "2026-07-14T21:10:56Z",
+  "worker_commit": "f6f77bc5379430306b6ebeea5056387218cf7f49",
+  "test_exit": 0,
+  "attestation": {
+    "required": [
+      "tests/auto_resume_watchdog.sh",
+      "tests/capitalize.sh",
+      "tests/codex_plan.sh",
+      "tests/dispatch_gate4.sh",
+      "tests/dispatch_parallel.sh",
+      "tests/intake_gate.sh",
+      "tests/isolation_fail_closed.sh",
+      "tests/lower.sh",
+      "tests/plain_language.sh",
+      "tests/prose_cap.sh",
+      "tests/repeat.sh",
+      "tests/reverse.sh",
+      "tests/review_cap.sh",
+      "tests/rulebook_cap.sh",
+      "tests/scope_glob.sh",
+      "tests/slugify.sh",
+      "tests/smoke.sh",
+      "tests/squeeze.sh",
+      "tests/test_attestation.sh",
+      "tests/trim.sh",
+      "tests/upper.sh",
+      "tests/worker_isolation.sh",
+      "tests/worker_userns.sh"
+    ],
+    "observed": {},
+    "attested": false,
+    "detail": "required tests did not run and pass: tests/auto_resume_watchdog.sh: NO RESULT (test never reported); tests/capitalize.sh: NO RESULT (test never reported); tests/codex_plan.sh: NO RESULT (test never reported); tests/dispatch_gate4.sh: NO RESULT (test never reported); tests/dispatch_parallel.sh: NO RESULT (test never reported); tests/intake_gate.sh: NO RESULT (test never reported); tests/isolation_fail_closed.sh: NO RESULT (test never reported); tests/lower.sh: NO RESULT (test never reported); tests/plain_language.sh: NO RESULT (test never reported); tests/prose_cap.sh: NO RESULT (test never reported); tests/repeat.sh: NO RESULT (test never reported); tests/reverse.sh: NO RESULT (test never reported); tests/review_cap.sh: NO RESULT (test never reported); tests/rulebook_cap.sh: NO RESULT (test never reported); tests/scope_glob.sh: NO RESULT (test never reported); tests/slugify.sh: NO RESULT (test never reported); tests/smoke.sh: NO RESULT (test never reported); tests/squeeze.sh: NO RESULT (test never reported); tests/test_attestation.sh: NO RESULT (test never reported); tests/trim.sh: NO RESULT (test never reported); tests/upper.sh: NO RESULT (test never reported); tests/worker_isolation.sh: NO RESULT (test never reported); tests/worker_userns.sh: NO RESULT (test never reported)",
+    "required_tests_restored_from_parent": [
+      "tests/worker_isolation.sh"
+    ]
+  }
+}

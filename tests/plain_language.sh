@@ -3,7 +3,7 @@
 # ("oracle", "baton", decision codenames cited like law) that the operator stopped understanding
 # his own system. Standing prose must be readable by a newcomer: banned terms fail CI.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "${ORCH_TARGET_DIR:-$(dirname "$0")/..}"
 
 command -v git >/dev/null 2>&1 || { echo "SKIP plain_language.sh: git absent"; exit 77; }
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "SKIP plain_language.sh: not a git checkout"; exit 77; }

@@ -524,7 +524,34 @@ OPERATOR_USER, OPERATOR_HOME = _resolve_operator()
 WORKER_USER = "codex-worker"
 WORKER_HOME = Path("/home/codex-worker")
 ISO_WORKTREES = Path("/srv/codexwork/worktrees")
-CODEX_PKG = OPERATOR_HOME / ".local/lib/node_modules/@openai/codex"  # bind-mounted RO to /opt/codex
+CODEX_PKG = OPERATOR_HOME / ".local/lib/node_modules/@openai/codex"  # npm layout; bind-mounted RO to /opt/codex
+
+
+def worker_codex_runtime():
+    """How an ISOLATED worker runs Codex: (argv prefix, read-only bind mounts), or None when this
+    box has no worker-launchable install. The worker cannot read the operator's home (that IS the
+    boundary), so root bind-mounts the runtime past it. Two layouts are launchable: the npm
+    package (needs a system node — the worker cannot reach ~/.local), or a native single ELF
+    binary. None must refuse at launch: the old npm-only assumption died opaquely in namespace
+    setup on a native-install box, identically on every retry (dev-box feedback, R51)."""
+    if (CODEX_PKG / "bin/codex.js").is_file() and Path("/usr/bin/node").is_file():
+        return ["/usr/bin/node", "/opt/codex/bin/codex.js"], [(str(CODEX_PKG), "/opt/codex")]
+    import shutil
+    cands = [OPERATOR_HOME / ".codex/bin/codex", OPERATOR_HOME / ".local/bin/codex",
+             Path("/usr/local/bin/codex"), Path("/usr/bin/codex")]
+    which = shutil.which("codex")
+    if which:
+        cands.append(Path(which))
+    for cand in cands:
+        try:
+            real = cand.resolve(strict=True)
+            with real.open("rb") as fh:
+                elf = fh.read(4) == b"\x7fELF"
+        except OSError:
+            continue
+        if elf:  # an npm shim here would still need node; only a real binary is self-sufficient
+            return ["/opt/codex/codex"], [(str(real), "/opt/codex/codex")]
+    return None
 
 
 def isolation_available() -> bool:
@@ -720,6 +747,33 @@ def cmd_launch(spec_id: str) -> None:
               "!!! its credentials and its network. You asked for this (ORCH_ALLOW_UNISOLATED=1).\n"
               "!!! It is recorded in launch.json and in the reviewer's evidence.", file=sys.stderr)
 
+    # Same fail-fast doctrine for the worker's Codex runtime: an isolated launch without one dies
+    # in namespace setup AFTER the attempt is claimed — opaquely, identically on every retry.
+    if iso and worker_codex_runtime() is None:
+        die("REFUSING to launch: no worker-launchable Codex runtime on this box.\n"
+            "  Isolated workers need EITHER the npm package\n"
+            "  (~/.local/lib/node_modules/@openai/codex + a system node at /usr/bin/node)\n"
+            "  OR a native codex ELF binary (~/.codex/bin, ~/.local/bin, /usr/local/bin,\n"
+            "  /usr/bin, or on PATH).\n"
+            "  Fix: npm install -g --prefix ~/.local @openai/codex   (plus a system node),\n"
+            "       or install the native binary. Then relaunch.", 15)
+
+    # D5/userns preconditions PROVEN, not assumed. isolation_available() above is a cheap proxy
+    # (sudo -n true) good enough to decide WHETHER to attempt isolation; it is not evidence that
+    # isolation actually holds. Run the real drills now, from the orchestrator's own installed
+    # copies, before any worktree for this attempt exists — a worker cannot have touched this,
+    # because there is no worker yet. Their PASS/FAIL becomes part of this attempt's attestation
+    # (see _run_pipeline), so a box that cannot isolate cannot certify a merge either.
+    prelaunch_tests: dict[str, str] = {}
+    if iso:
+        prelaunch_tests = run_prelaunch_tests()
+        bad = {t: s for t, s in prelaunch_tests.items() if s != "PASS"}
+        if bad:
+            die("REFUSING to launch: isolation preconditions did not PASS on this box.\n"
+                + "\n".join(f"  {t}: {s}" for t, s in bad.items()) + "\n"
+                "  Run the failing one(s) directly to see the assertion that failed, e.g.:\n"
+                f"  bash {next(iter(bad))}", ERR_NO_ISOLATION_RC)
+
     ctx = preflight(spec_id)
     spec, digest, approval = ctx["spec"], ctx["digest"], ctx["approval"]
 
@@ -781,6 +835,7 @@ def cmd_launch(spec_id: str) -> None:
         # T2: the frozen decision + why it was allowed. `exposure_accepted` is the operator's
         # knowing "yes, run this as me" — provenance never overstates the boundary.
         "isolation": iso, "exposure_accepted": (not iso and exposed),
+        "prelaunch_tests": prelaunch_tests,
         "worker_unit": f"codex-worker-{attempt_id}",
         "test_unit": f"codex-test-{attempt_id}", "created": now(),
     }, indent=2))
@@ -831,7 +886,8 @@ def _run(attempt_id: str) -> None:
         write_state(spec_id, {"attempt_id": attempt_id, "spec_id": spec_id, "attempt": n,
                               "spec_digest": lc["spec_digest"], "status": status,
                               "error_class": err_class, "unit": unit_name(spec_id, n),
-                              **{k: extra[k] for k in ("worker_commit", "pr_url") if k in extra}})
+                              **{k: extra[k] for k in ("worker_commit", "pr_url", "detail",
+                                                       "worker_exit") if k in extra}})
         sys.exit(0 if status == "passed_pr_opened" else 1)
 
     try:
@@ -895,13 +951,18 @@ def _run_pipeline(attempt_id, spec_id, n, att, lc, wt, raw, finish) -> None:
             # ProtectSystem=strict + ReadWritePaths confine writes and InaccessiblePaths=the operator's home
             # + DAC confine reads. --output-last-message is dropped (worker can't write the operator's home);
             # the final message is recovered from the JSONL stream.
-            argv = ["/usr/bin/node", "/opt/codex/bin/codex.js", *codex_args,
-                    "-s", "danger-full-access", prompt]
+            runtime = worker_codex_runtime()
+            if runtime is None:
+                finish("failed_worker_error", ERR_WORKER,
+                       detail="no worker-launchable Codex runtime (launch preflight should have "
+                              "refused); install the npm package + system node, or a native binary")
+            argv_prefix, binds = runtime
+            argv = [*argv_prefix, *codex_args, "-s", "danger-full-access", prompt]
             wc = isolated_run(
                 lc["worker_unit"], argv, cwd=str(wt),
                 rw_paths=[str(wt), str(WORKER_HOME / ".codex")],
                 private_network=False, ceiling_s=ceiling_s, stdout=ev, stderr=er,
-                binds=[(str(CODEX_PKG), "/opt/codex")])
+                binds=binds)
         else:
             # Fallback (fresh box / CI): same-user launch with Codex's bwrap sandbox.
             scrubbed = {
@@ -938,7 +999,8 @@ def _run_pipeline(attempt_id, spec_id, n, att, lc, wt, raw, finish) -> None:
                    detail="Codex quota/rate-limit hit mid-attempt; re-launch as a fresh attempt "
                           "after capacity returns. Never hand-finish this worktree.")
         finish("failed_worker_error", ec, worker_exit=wc.returncode,
-               detail=f"worker error class={ec}")
+               detail=f"worker error class={ec}; stderr tail: "
+                      f"{stderr_txt[-800:].strip() or '(empty)'}")
 
     # --- D5 path-safety gate: reject planted symlinks/special files BEFORE any operator-context step
     # touches worker output (no later the operator process should be able to follow a link into the operator's files).
@@ -1016,15 +1078,29 @@ def _run_pipeline(attempt_id, spec_id, n, att, lc, wt, raw, finish) -> None:
             worker_copy.parent.mkdir(parents=True, exist_ok=True)
             worker_copy.write_bytes(parent_bytes)
             worker_copy.chmod(0o755)
+    # sandbox_venv_override (tests/manifest.yaml): 4 of the required tests import scripts/
+    # dispatch.py, which needs pyyaml + jsonschema — not present in a fresh worktree (.venv/ is
+    # gitignored). Bind the orchestrator's OWN venv in read-only; those tests fall back to
+    # $ORCH_VENV only when their own local .venv is absent, so a candidate that ships its own
+    # (different) venv is still exercised on its own terms first.
+    venv_binds = []
+    venv_env = {}
+    if (ROOT / ".venv").is_dir():
+        venv_binds.append((str(ROOT / ".venv"), "/opt/orch-venv"))
+        venv_env["ORCH_VENV"] = "/opt/orch-venv"
     if iso:
         with open(att / "test.log", "w") as tl:
             tcp = isolated_run(
                 lc["test_unit"], ["bash", "-c", lc["test_command"]], cwd=str(wt),
                 rw_paths=[str(wt)], private_network=True, ceiling_s=ceiling_s,
-                env_extra=test_env, stdout=tl, stderr=subprocess.STDOUT)
+                env_extra={**test_env, **venv_env}, binds=venv_binds,
+                stdout=tl, stderr=subprocess.STDOUT)
         test_rc = tcp.returncode
     else:
-        tc = run(["bash", "-c", lc["test_command"]], cwd=str(wt), env={**os.environ, **test_env})
+        env = {**os.environ, **test_env}
+        if venv_binds:
+            env["ORCH_VENV"] = str(ROOT / ".venv")   # no sandbox here — the real path works as-is
+        tc = run(["bash", "-c", lc["test_command"]], cwd=str(wt), env=env)
         (att / "test.log").write_text((tc.stdout or "") + (tc.stderr or ""))
         test_rc = tc.returncode
     if test_rc != 0:
@@ -1035,6 +1111,17 @@ def _run_pipeline(attempt_id, spec_id, n, att, lc, wt, raw, finish) -> None:
     # certified them as proof. A test that did not RUN has not PASSED.
     summary_txt = summary_path.read_text() if summary_path.exists() else ""
     ran = parse_test_summary(summary_txt)
+
+    if iso:
+        # operator_read: the sandboxed run above cannot resolve git (the linked worktree's .git
+        # points back into the operator's home), so these two run separately, by the
+        # orchestrator, against THIS worktree's candidate files — overwriting whatever the
+        # sandboxed run recorded for them (SKIP: not a git checkout).
+        ran.update(run_operator_read_tests(wt, att))
+        # prelaunch: proven once at launch time, before this worktree existed. The worker cannot
+        # have influenced this — there was no worker yet.
+        ran.update(lc.get("prelaunch_tests", {}))
+
     req = required_tests()
     attested, detail = attest_tests(ran, req)
     attestation = {"required": req, "observed": ran, "attested": attested, "detail": detail,
@@ -1277,8 +1364,68 @@ def required_tests() -> list[str]:
 
     Deliberately blunt: every test in the installed repo is required. One suite, it is fast, and a
     cleverer selector is exactly the kind of mechanism we are no longer building speculatively
-    (R26 — gates are earned by real failures, not imagined ones)."""
+    (R26 — gates are earned by real failures, not imagined ones). WHERE and BY WHOM each one runs
+    is a separate question — see tests/manifest.yaml and load_test_manifest(); a skip-allowlist
+    that quietly drops isolation drills from the required set was considered and rejected."""
     return sorted(str(p.relative_to(ROOT)) for p in (ROOT / "tests").glob("*.sh"))
+
+
+def load_test_manifest() -> dict[str, list[str]]:
+    """Single source of truth for which tests run where (tests/manifest.yaml). Every test in
+    required_tests() must appear in exactly one category here — enforced, not assumed, because a
+    test silently missing from every category would run nowhere and still show as required."""
+    raw = yaml.safe_load((ROOT / "tests" / "manifest.yaml").read_text()) or {}
+    cats = ("sandbox", "prelaunch", "sandbox_venv_override", "operator_read")
+    out = {c: sorted(raw.get(c) or []) for c in cats}
+    declared = set().union(*out.values())
+    all_tests = set(required_tests())
+    missing = all_tests - declared
+    unknown = declared - all_tests
+    if missing or unknown:
+        die(f"tests/manifest.yaml is out of sync with tests/*.sh — missing: {sorted(missing)}, "
+            f"unknown: {sorted(unknown)}")
+    dupes = [t for t in declared if sum(t in v for v in out.values()) > 1]
+    if dupes:
+        die(f"tests/manifest.yaml lists a test in more than one category: {sorted(dupes)}")
+    return out
+
+
+def _classify_rc(rc: int) -> str:
+    return "PASS" if rc == 0 else "SKIP" if rc == 77 else "FAIL"
+
+
+def run_prelaunch_tests() -> dict[str, str]:
+    """D5/userns preconditions (tests/manifest.yaml: prelaunch). Run FOR REAL, from the
+    orchestrator's OWN installed copies, once per launch, before any worktree for this attempt
+    exists. A worker cannot influence this result — there is no worker yet to influence it with.
+    Replaces trusting the cheap `sudo -n true` proxy in isolation_available() for anything beyond
+    deciding whether to even attempt isolation."""
+    out: dict[str, str] = {}
+    for rel in load_test_manifest()["prelaunch"]:
+        cp = run(["bash", str(ROOT / rel)])
+        out[rel] = _classify_rc(cp.returncode)
+        if out[rel] != "PASS":
+            tail = ((cp.stdout or "") + (cp.stderr or "")).strip().splitlines()[-15:]
+            print(f"-- {rel} ({out[rel]}) --", file=sys.stderr)
+            print("\n".join(tail), file=sys.stderr)
+    return out
+
+
+def run_operator_read_tests(wt: Path, att: Path) -> dict[str, str]:
+    """operator_read (tests/manifest.yaml): plain reads of the candidate's own tracked files.
+    Uses the ORCHESTRATOR's OWN installed copy of the test (never the worktree's — the same
+    anti-tamper principle as the required-tests restore in _run_pipeline), pointed at the
+    candidate's worktree via $ORCH_TARGET_DIR so it checks THAT git history, not the
+    orchestrator's own. Never executes anything from the worktree — grep/git-ls-files only."""
+    out: dict[str, str] = {}
+    env = {**os.environ, "ORCH_TARGET_DIR": str(wt)}
+    for rel in load_test_manifest()["operator_read"]:
+        cp = run(["bash", str(ROOT / rel)], env=env)
+        out[rel] = _classify_rc(cp.returncode)
+        (att / "raw").mkdir(parents=True, exist_ok=True)
+        (att / "raw" / f"operator-{Path(rel).name}.log").write_text(
+            (cp.stdout or "") + (cp.stderr or ""))
+    return out
 
 
 def evaluate_binary_review(verdict: str, criteria: list[dict], scope_finding: str,
@@ -1445,8 +1592,20 @@ def cmd_await(attempt_id: str, interval: int = 5, max_wait: int = 8 * 3600) -> N
         st = read_state(spec_id) or {}
         status = st.get("status") if st.get("attempt_id") == attempt_id else None
         if status in TERMINAL:
-            print(json.dumps({"attempt_id": attempt_id, "status": status,
-                              "error_class": st.get("error_class")}))
+            # Surface the WHY and the evidence path, not just the class — an opaque error_class
+            # sent an operator around five blind relaunches (dev-box feedback, R51).
+            att = ATTEMPTS / spec_id / str(n)
+            out = {"attempt_id": attempt_id, "status": status,
+                   "error_class": st.get("error_class"), "detail": st.get("detail"),
+                   "evidence": str(att)}
+            try:  # result.json carries the full record; state may hold only a summary
+                r = json.loads((att / "result.json").read_text())
+                out["detail"] = r.get("detail", out["detail"])
+                if "worker_exit" in r:
+                    out["worker_exit"] = r["worker_exit"]
+            except Exception:
+                pass
+            print(json.dumps(out))
             sys.exit(0 if status == "passed_pr_opened" else 1)
         # Unit gone but state not terminal => crash/interrupted.
         if status in LIVE and not unit_active(unit):

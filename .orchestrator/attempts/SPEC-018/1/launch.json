@@ -1,0 +1,28 @@
+{
+  "attempt_id": "SPEC-018-1",
+  "spec_id": "SPEC-018",
+  "attempt": 1,
+  "spec_digest": "bae54edeadad373adf44d6d47b147129fd77f75f71d692e9d8cdd2349b0e831e",
+  "base_sha": "a64c3d4a572277167ab80dd58e080f9d239b07ed",
+  "branch": "codex/SPEC-018-1",
+  "base_branch": "ready-for-main",
+  "worktree": "/srv/codexwork/worktrees/SPEC-018-1",
+  "worker_model": "gpt-5.6-sol",
+  "worker_effort": "high",
+  "reviewer_model": "claude-fable-5",
+  "reviewer_effort": "high",
+  "test_command": "bash tests/wordcount.sh",
+  "approved_scope": [
+    "scripts/lib/wordcount.sh",
+    "tests/wordcount.sh"
+  ],
+  "regression_command": null,
+  "regression_test_paths": [],
+  "hard_ceiling_hours": 2.0,
+  "remediation": null,
+  "isolation": true,
+  "exposure_accepted": false,
+  "worker_unit": "codex-worker-SPEC-018-1",
+  "test_unit": "codex-test-SPEC-018-1",
+  "created": "2026-07-14T21:09:58Z"
+}

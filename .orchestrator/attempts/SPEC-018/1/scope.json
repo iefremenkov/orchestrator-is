@@ -1,0 +1,12 @@
+{
+  "approved_scope": [
+    "scripts/lib/wordcount.sh",
+    "tests/wordcount.sh"
+  ],
+  "changed": [
+    "scripts/lib/wordcount.sh",
+    "tests/wordcount.sh"
+  ],
+  "out_of_scope": [],
+  "result": "PASS"
+}

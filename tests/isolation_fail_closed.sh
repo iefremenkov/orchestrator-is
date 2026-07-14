@@ -19,6 +19,9 @@ ok()   { echo "  ok: $1"; }
 bad()  { echo "  FAIL: $1"; fails=1; }
 
 PY=".venv/bin/python"
+if [ ! -x "$PY" ] && [ -n "${ORCH_VENV:-}" ] && [ -x "${ORCH_VENV}/bin/python" ]; then
+  PY="${ORCH_VENV}/bin/python"
+fi
 if [ ! -x "$PY" ] || ! "$PY" -c 'import yaml, jsonschema' 2>/dev/null; then
   echo "SKIP isolation_fail_closed.sh: .venv/pyyaml/jsonschema absent (box-only)"
   exit 77   # did NOT run — never a pass (T1)

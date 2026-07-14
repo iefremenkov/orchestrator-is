@@ -1,0 +1,25 @@
+id: SPEC-018
+title: Add a wordcount shell helper
+risk_class: low
+depends_on: []
+objective: >
+  A reusable Bash function wordcount exists at scripts/lib/wordcount.sh that counts the number of
+  whitespace-separated words in its first argument, with a test that pins its behaviour. This is a
+  fresh Gate-1 end-to-end validation task, exercising the full pipeline on a target that does not
+  already exist in the repo.
+in_scope:
+  - scripts/lib/wordcount.sh
+  - tests/wordcount.sh
+out_of_scope:
+  - .github/**
+  - scripts/test
+  - specs/**
+  - .orchestrator/**
+acceptance_criteria:
+  - "scripts/lib/wordcount.sh defines a function wordcount that reads its first argument and prints the number of whitespace-separated words to stdout."
+  - "Behaviour: leading/trailing whitespace is ignored; consecutive whitespace counts as one separator; an empty or all-whitespace string counts as 0."
+  - "tests/wordcount.sh sources the helper and asserts: 'hello world' -> 2; '  a   b c  ' -> 3; '' -> 0."
+  - "tests/wordcount.sh exits 0 when all assertions pass."
+test_command: "./scripts/test"
+hard_ceiling_hours: 2
+needs_network: false
