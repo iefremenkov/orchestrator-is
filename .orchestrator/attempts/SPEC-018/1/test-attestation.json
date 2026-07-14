@@ -1,0 +1,33 @@
+{
+  "required": [
+    "tests/auto_resume_watchdog.sh",
+    "tests/capitalize.sh",
+    "tests/codex_plan.sh",
+    "tests/dispatch_gate4.sh",
+    "tests/dispatch_parallel.sh",
+    "tests/intake_gate.sh",
+    "tests/isolation_fail_closed.sh",
+    "tests/lower.sh",
+    "tests/plain_language.sh",
+    "tests/prose_cap.sh",
+    "tests/repeat.sh",
+    "tests/reverse.sh",
+    "tests/review_cap.sh",
+    "tests/rulebook_cap.sh",
+    "tests/scope_glob.sh",
+    "tests/slugify.sh",
+    "tests/smoke.sh",
+    "tests/squeeze.sh",
+    "tests/test_attestation.sh",
+    "tests/trim.sh",
+    "tests/upper.sh",
+    "tests/worker_isolation.sh",
+    "tests/worker_userns.sh"
+  ],
+  "observed": {},
+  "attested": false,
+  "detail": "required tests did not run and pass: tests/auto_resume_watchdog.sh: NO RESULT (test never reported); tests/capitalize.sh: NO RESULT (test never reported); tests/codex_plan.sh: NO RESULT (test never reported); tests/dispatch_gate4.sh: NO RESULT (test never reported); tests/dispatch_parallel.sh: NO RESULT (test never reported); tests/intake_gate.sh: NO RESULT (test never reported); tests/isolation_fail_closed.sh: NO RESULT (test never reported); tests/lower.sh: NO RESULT (test never reported); tests/plain_language.sh: NO RESULT (test never reported); tests/prose_cap.sh: NO RESULT (test never reported); tests/repeat.sh: NO RESULT (test never reported); tests/reverse.sh: NO RESULT (test never reported); tests/review_cap.sh: NO RESULT (test never reported); tests/rulebook_cap.sh: NO RESULT (test never reported); tests/scope_glob.sh: NO RESULT (test never reported); tests/slugify.sh: NO RESULT (test never reported); tests/smoke.sh: NO RESULT (test never reported); tests/squeeze.sh: NO RESULT (test never reported); tests/test_attestation.sh: NO RESULT (test never reported); tests/trim.sh: NO RESULT (test never reported); tests/upper.sh: NO RESULT (test never reported); tests/worker_isolation.sh: NO RESULT (test never reported); tests/worker_userns.sh: NO RESULT (test never reported)",
+  "required_tests_restored_from_parent": [
+    "tests/worker_isolation.sh"
+  ]
+}

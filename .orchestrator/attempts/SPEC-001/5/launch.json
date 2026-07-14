@@ -1,0 +1,28 @@
+{
+  "attempt_id": "SPEC-001-5",
+  "spec_id": "SPEC-001",
+  "attempt": 5,
+  "spec_digest": "3fdfa70eb3be07747e8bf13ff915ca5d6c8982f601edda259939e380ffdcec88",
+  "base_sha": "a64c3d4a572277167ab80dd58e080f9d239b07ed",
+  "branch": "codex/SPEC-001-5",
+  "base_branch": "ready-for-main",
+  "worktree": "/srv/codexwork/worktrees/SPEC-001-5",
+  "worker_model": "gpt-5.6-sol",
+  "worker_effort": "high",
+  "reviewer_model": "claude-fable-5",
+  "reviewer_effort": "high",
+  "test_command": "bash tests/slugify.sh",
+  "approved_scope": [
+    "scripts/lib/**",
+    "tests/slugify.sh"
+  ],
+  "regression_command": null,
+  "regression_test_paths": [],
+  "hard_ceiling_hours": 2.0,
+  "remediation": null,
+  "isolation": true,
+  "exposure_accepted": false,
+  "worker_unit": "codex-worker-SPEC-001-5",
+  "test_unit": "codex-test-SPEC-001-5",
+  "created": "2026-07-14T21:04:10Z"
+}
