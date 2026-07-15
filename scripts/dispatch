@@ -11,14 +11,5 @@ export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=${XDG_RUNTIME_DIR}/bus}"
 # Orchestrator PATH: codex/claude live in ~/.local/bin; git/gh in /usr/bin.
 export PATH="${HOME}/.local/bin:/usr/local/bin:/usr/bin:/bin"
-# A fresh worktree has no .venv of its own (gitignored). $ORCH_VENV points at the
-# orchestrator's own venv, bind-mounted into the isolated test phase for exactly
-# this reason (tests/manifest.yaml: sandbox_venv_override) — this wrapper needs
-# the same fallback the 4 python-based tests already have, or a nested
-# `./scripts/dispatch` call made FROM inside that test phase (isolation_fail_closed.sh's
-# live-refusal drill) dies on a missing interpreter instead of the real refusal message.
-PYBIN="${ROOT}/.venv/bin/python"
-if [ ! -x "$PYBIN" ] && [ -n "${ORCH_VENV:-}" ] && [ -x "${ORCH_VENV}/bin/python" ]; then
-  PYBIN="${ORCH_VENV}/bin/python"
-fi
-exec "$PYBIN" "${ROOT}/scripts/dispatch.py" "$@"
+PY="${ORCH_TEST_PY:-${ROOT}/.venv/bin/python}"
+exec "$PY" "${ROOT}/scripts/dispatch.py" "$@"
