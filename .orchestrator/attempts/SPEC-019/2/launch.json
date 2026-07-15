@@ -1,0 +1,42 @@
+{
+  "attempt_id": "SPEC-019-2",
+  "spec_id": "SPEC-019",
+  "attempt": 2,
+  "spec_digest": "1c4115e17026a39f931a0d1f9654c7556a74406e22ffa248bf07dc84dc247f51",
+  "base_sha": "0be9219d0248b1c1f3706ea30ef40db4d97b725e",
+  "branch": "codex/SPEC-019-2",
+  "base_branch": "ready-for-main",
+  "worktree": "/srv/codexwork/worktrees/SPEC-019-2",
+  "worker_model": "gpt-5.6-sol",
+  "worker_effort": "high",
+  "reviewer_model": "claude-fable-5",
+  "reviewer_effort": "high",
+  "test_command": "./scripts/test",
+  "approved_scope": [
+    "scripts/lib/wordcount.sh",
+    "tests/wordcount.sh"
+  ],
+  "regression_command": null,
+  "regression_test_paths": [],
+  "hard_ceiling_hours": 2.0,
+  "remediation": {
+    "remediation_number": 1,
+    "of_attempt": 1,
+    "findings": {
+      "failed_attempt": 1,
+      "status": "failed_test",
+      "test_log_tail": "lugify.sh\nPASS tests/slugify.sh\n=== tests/smoke.sh\nci status-check contract intact\nPASS tests/smoke.sh\n=== tests/squeeze.sh\nPASS tests/squeeze.sh\n=== tests/test_attestation.sh\n== T1: SKIP != PASS attestation\n  ok: a SKIPped required test blocks the gate\n  ok: the block names the skipped tests\n  ok: an EMPTY required set blocks (round-10 hole)\n  ok: a required test with no result blocks\n  ok: a FAILED required test blocks\n  ok: all-passed still passes\n  ok: worker prose is not parsed as a verdict\n== T1: runner reports SKIP as SKIP (not PASS)\n  ok: exit-77 test recorded as SKIP\n  ok: exit-0 test recorded as PASS\n== T1b: a worker cannot neuter a required test (grader out of reach)\n  ok: attestation records substituted required tests\n  ok: the gate restores required tests from the parent copy\n  ok: restored test fails as it should (worker's exit-0 stub did not grade)\nPASS test_attestation.sh\nPASS tests/test_attestation.sh\n=== tests/trim.sh\nPASS tests/trim.sh\n=== tests/upper.sh\nPASS tests/upper.sh\n=== tests/wordcount.sh\nPASS tests/wordcount.sh\n=== tests/worker_isolation.sh\nSKIP worker_isolation.sh: codex-worker user or passwordless sudo absent (box-only; run scripts/setup-worker-user.sh)\nSKIP tests/worker_isolation.sh (did not run)\n=== tests/worker_userns.sh\nSKIP worker_userns.sh: passwordless sudo unavailable\nSKIP tests/worker_userns.sh (did not run)\n\n--- summary\nPASS tests/auto_resume_watchdog.sh\nPASS tests/capitalize.sh\nPASS tests/codex_plan.sh\nPASS tests/dispatch_gate4.sh\nPASS tests/dispatch_parallel.sh\nPASS tests/intake_gate.sh\nFAIL tests/isolation_fail_closed.sh\nPASS tests/lower.sh\nSKIP tests/plain_language.sh\nSKIP tests/prose_cap.sh\nPASS tests/repeat.sh\nPASS tests/reverse.sh\nPASS tests/review_cap.sh\nPASS tests/rulebook_cap.sh\nPASS tests/scope_glob.sh\nPASS tests/slugify.sh\nPASS tests/smoke.sh\nPASS tests/squeeze.sh\nPASS tests/test_attestation.sh\nPASS tests/trim.sh\nPASS tests/upper.sh\nPASS tests/wordcount.sh\nSKIP tests/worker_isolation.sh\nSKIP tests/worker_userns.sh\n",
+      "test_exit": 1
+    },
+    "limit": 5
+  },
+  "isolation": true,
+  "exposure_accepted": false,
+  "prelaunch_tests": {
+    "tests/worker_isolation.sh": "PASS",
+    "tests/worker_userns.sh": "PASS"
+  },
+  "worker_unit": "codex-worker-SPEC-019-2",
+  "test_unit": "codex-test-SPEC-019-2",
+  "created": "2026-07-14T22:43:36Z"
+}

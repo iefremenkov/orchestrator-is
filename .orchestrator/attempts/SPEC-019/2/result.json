@@ -1,0 +1,17 @@
+{
+  "attempt_id": "SPEC-019-2",
+  "spec_id": "SPEC-019",
+  "attempt": 2,
+  "spec_digest": "1c4115e17026a39f931a0d1f9654c7556a74406e22ffa248bf07dc84dc247f51",
+  "base_sha": "0be9219d0248b1c1f3706ea30ef40db4d97b725e",
+  "worker_model": "gpt-5.6-sol",
+  "reviewer_model": "claude-fable-5",
+  "isolation": "D5: codex-worker uid, systemd-hardened, the operator's home inaccessible, test phase network-off",
+  "test_command": "./scripts/test",
+  "status": "passed_pr_opened",
+  "error_class": null,
+  "commit_policy": "orchestrator-commits (G1-A/C)",
+  "finished": "2026-07-14T22:46:03Z",
+  "worker_commit": "60a7dc04d57a1e252110028c3564e43a70d8d586",
+  "pr_url": "https://github.com/iefremenkov/orchestrator-is/pull/5"
+}
